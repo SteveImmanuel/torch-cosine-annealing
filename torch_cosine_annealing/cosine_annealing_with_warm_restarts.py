@@ -2,35 +2,60 @@ import math
 from torch.optim.optimizer import Optimizer
 import warnings
 from torch.optim.lr_scheduler import _LRScheduler
-from typing import Union, List
+from typing import Union, List, Optional
 
 class CosineAnnealingWithWarmRestarts(_LRScheduler):
     def __init__(
         self, 
         optimizer: Optimizer,
         cycle_period: int,
-        cycle_mult: int,
+        cycle_mult: int = 1,
         warmup_period: Union[float, int] = 0,
-        max_lr: Union[float, List[float]] = None, 
+        max_lr: Optional[Union[float, List[float]]] = None, 
         min_lr: float = 1e-8,
         gamma: float = 1,
         strategy: str = 'step',
-        last_epoch: int = -1
-    ) -> None:
+    ):
+        """Cosine annealing with warm restarts scheduler. Implements the cosine annealing scheduler with warm restarts from the paper SGDR (https://arxiv.org/abs/1608.03983).
+
+        Args:
+            optimizer (Optimizer): PyTorch optimizer
+            cycle_period (int): The period for the first cycle. If strategy is 'step', this is the number of steps in the first cycle. 
+                                If strategy is 'epoch', this is the number of epochs in the first cycle.
+            cycle_mult (int): The multiplier for the cycle period after each cycle. Defaults to 1.
+            warmup_period (Union[float, int]): The period for warmup for each cycle. 
+                                                         If strategy is 'step', this is the number of steps for the warmup. 
+                                                         If strategy is 'epoch', this is the number of epochs for the warmup. 
+                                                         Defaults to 0.
+            max_lr (Union[float, List[float]], optional): The maximum learning rate for the optimizer (eta_max). 
+                                                          If ommited, the learning rate of the optimizer will be used. 
+                                                          If a float is given, all lr in the optimizer param groups will be overriden with this value. 
+                                                          If a list is given, the length of the list must be the same as the number of param groups in the optimizer.
+                                                          Defaults to None.
+            min_lr (float, optional): The maximum learning rate for the optimizer (eta_min). Defaults to 1e-8.
+            gamma (float, optional): The decay rate for the learning rate after each cycle. Defaults to 1.
+            strategy (str, optional): Defines whether the cycle period and warmup period to be treated as steps or epochs. Can be `step` or `epoch`. 
+                                      Note that if you use `epoch`, you need to specify the epoch progress each time you call `.step()` Defaults to 'step'.
+        """
         self.cycle_period = cycle_period
-        self.warmup_period = warmup_period
         self.cycle_mult = cycle_mult
+        self.warmup_period = warmup_period
         self.max_lr = max_lr
         self.min_lr = min_lr
-        self.cur_cycle_period = cycle_period
         self.gamma = gamma
-        self.cur_step = 0
         self.strategy = strategy
+        
+        self.cur_cycle_period = cycle_period
+        self.cur_step = 0
         self.first_step = True
         if strategy == 'epoch':
             self.cycle_reducer = 0
 
-        super().__init__(optimizer, last_epoch)
+        assert strategy in ['step', 'epoch'], 'strategy must be either `step` or `epoch`'
+        assert cycle_mult >= 1, 'cycle_mult must be greater than or equal to 1'
+        assert 0 <= warmup_period < cycle_period, 'warmup_period must be greater than or equal to 0 and less than cycle_period'
+
+        super().__init__(optimizer, -1)
 
         if max_lr is not None:
             if isinstance(max_lr, list):
@@ -38,14 +63,9 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
             else:
                 max_lr = [max_lr] * len(optimizer.param_groups)
             
-            if last_epoch == -1:
-                for group, lr in zip(optimizer.param_groups, max_lr):
-                    group['lr'] = lr
-                    group.setdefault('initial_lr', group['lr'])
-            else:
-                for i, group in enumerate(optimizer.param_groups):
-                    if 'initial_lr' not in group:
-                        raise KeyError('param `initial_lr` is not specified in param_groups[{i}] when resuming an optimizer')
+            for group, lr in zip(optimizer.param_groups, max_lr):
+                group['lr'] = lr
+                group.setdefault('initial_lr', group['lr'])
         
             self.base_lrs = [group['initial_lr'] for group in optimizer.param_groups]
 
@@ -55,9 +75,9 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
         return state_dict
 
     def load_state_dict(self, state_dict):
-        self.__dict__.update(state_dict)
         if self.strategy == 'epoch':
             warnings.warn('Restoring scheduler state with epoch strategy may lead to unexpected behavior.')
+        super().load_state_dict(state_dict)
 
     def get_lr(self):
         if not self._get_lr_called_within_step:
@@ -70,11 +90,17 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
         return lrs
 
     def step(self, epoch:float = None):
+        """Step the scheduler to update the learning rate. If strategy is `epoch`, you need to specify the epoch progress each time you call this method.
+
+        Args:
+            epoch (float, optional): If strategy is `epoch`, you need to specify the epoch progress each time you call this method. Defaults to None.
+        """
         if self.strategy == 'epoch':
             if self.first_step:
                 self.first_step = False
                 self.cur_step = 0
             else:
+                assert epoch is not None, 'You need to specify the epoch progress when using `epoch` strategy.'
                 self.cur_step = epoch - self.cycle_reducer
 
         if self.cur_step > self.cur_cycle_period:
