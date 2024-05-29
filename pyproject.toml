@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "torch-cosine-annealing"
+version = "1.0.0"
+description = "Cosine annealing learning rate scheduler for PyTorch based on SGDR"
+readme = "readme.md"
+authors = [{ name = "Steve Immanuel", email = "iam.steve.immanuel@gmail.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+keywords = ["cosine-annealing", "sgdr", "torch", "scheduler"]
+dependencies = [
+    "torch>=1.7.0",
+]
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+dev = ["pytest", "matplotlib", "bumpver"]
+
+[project.urls]
+Homepage = "https://github.com/SteveImmanuel/torch-cosine-annealing"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
+
+[tool.bumpver]
+current_version = "1.0.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message  = "Bump version {old_version} -> {new_version}"
+commit          = false
+tag             = true
+push            = false
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = ['current_version = "{version}"', 'version = "{version}"']
+"src/torch_cosine_annealing/__init__.py" = ["{version}"]
