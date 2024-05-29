@@ -1,10 +1,9 @@
-name: Linting
+name: Unit Test
 
 on:
   push:
     branches:
-      - main
-      - ci-cd
+      - lalala
     tags-ignore:
       - "*"
 
