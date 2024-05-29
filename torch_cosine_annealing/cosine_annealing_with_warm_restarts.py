@@ -1,5 +1,5 @@
 import math
-from torch.optim.optimizer import Optimizer
+from torch.optim.optimizer import Optimizer#
 import warnings
 from torch.optim.lr_scheduler import _LRScheduler
 from typing import Union, List, Optional
@@ -55,8 +55,6 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
         assert cycle_mult >= 1, 'cycle_mult must be greater than or equal to 1'
         assert 0 <= warmup_period < cycle_period, 'warmup_period must be greater than or equal to 0 and less than cycle_period'
 
-        super().__init__(optimizer, -1)
-
         if max_lr is not None:
             if isinstance(max_lr, list):
                 assert len(max_lr) == len(optimizer.param_groups), 'max_lr must be a list of the same length as optimizer.param_groups'
@@ -65,10 +63,9 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
             
             for group, lr in zip(optimizer.param_groups, max_lr):
                 group['lr'] = lr
-                group.setdefault('initial_lr', group['lr'])
-        
-            self.base_lrs = [group['initial_lr'] for group in optimizer.param_groups]
+                group['initial_lr'] = lr
 
+        super().__init__(optimizer, -1)
 
     def state_dict(self):
         state_dict = {key: value for key, value in self.__dict__.items() if key not in ('optimizer')}
@@ -103,7 +100,7 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
                 assert epoch is not None, 'You need to specify the epoch progress when using `epoch` strategy.'
                 self.cur_step = epoch - self.cycle_reducer
 
-        if self.cur_step > self.cur_cycle_period:
+        if self.cur_step == self.cur_cycle_period:
             if self.strategy == 'epoch':
                 self.cycle_reducer += self.cur_cycle_period
             self.cur_step = 0
