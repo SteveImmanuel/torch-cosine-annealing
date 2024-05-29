@@ -11,6 +11,7 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
         cycle_period: int,
         cycle_mult: int = 1,
         warmup_period: Union[float, int] = 0,
+        warmup_once: bool = False,
         max_lr: Optional[Union[float, List[float]]] = None, 
         min_lr: float = 1e-8,
         gamma: float = 1,
@@ -24,9 +25,10 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
                                 If strategy is 'epoch', this is the number of epochs in the first cycle.
             cycle_mult (int): The multiplier for the cycle period after each cycle. Defaults to 1.
             warmup_period (Union[float, int]): The period for warmup for each cycle. 
-                                                         If strategy is 'step', this is the number of steps for the warmup. 
-                                                         If strategy is 'epoch', this is the number of epochs for the warmup. 
-                                                         Defaults to 0.
+                                               If strategy is 'step', this is the number of steps for the warmup. 
+                                               If strategy is 'epoch', this is the number of epochs for the warmup. 
+                                               Defaults to 0.
+            warmup_once (bool): Whether to apply warmup only once at the beginning of the first cycle. Only affects when warmup_period > 0. Defaults to False.
             max_lr (Union[float, List[float]], optional): The maximum learning rate for the optimizer (eta_max). 
                                                           If ommited, the learning rate of the optimizer will be used. 
                                                           If a float is given, all lr in the optimizer param groups will be overriden with this value. 
@@ -40,6 +42,7 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
         self.cycle_period = cycle_period
         self.cycle_mult = cycle_mult
         self.warmup_period = warmup_period
+        self.warmup_once = warmup_once
         self.max_lr = max_lr
         self.min_lr = min_lr
         self.gamma = gamma
@@ -48,6 +51,7 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
         self.cur_cycle_period = cycle_period
         self.cur_step = 0
         self.first_step = True
+        self.first_cycle_completed = False
         if strategy == 'epoch':
             self.cycle_reducer = 0
 
@@ -79,10 +83,12 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
     def get_lr(self):
         if not self._get_lr_called_within_step:
             warnings.warn('To get the last learning rate computed by the scheduler, please use `get_last_lr()`.')
-        if self.cur_step < self.warmup_period:
+        
+        if self.cur_step < self.warmup_period and not (self.warmup_once and self.first_cycle_completed):
             lrs = [self.min_lr + (max_lr - self.min_lr) * self.cur_step / self.warmup_period for max_lr in self.base_lrs]
         else:
-            lrs = [self.min_lr + 0.5 * (max_lr - self.min_lr) * (1 + math.cos(math.pi * (self.cur_step - self.warmup_period) / (self.cur_cycle_period - self.warmup_period))) for max_lr in self.base_lrs]
+            warmup_period = self.warmup_period if not (self.warmup_once and self.first_cycle_completed) else 0
+            lrs = [self.min_lr + 0.5 * (max_lr - self.min_lr) * (1 + math.cos(math.pi * (self.cur_step - warmup_period) / (self.cur_cycle_period - warmup_period))) for max_lr in self.base_lrs]
         
         return lrs
 
@@ -99,8 +105,12 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
             else:
                 assert epoch is not None, 'You need to specify the epoch progress when using `epoch` strategy.'
                 self.cur_step = epoch - self.cycle_reducer
+        else:
+            if epoch is not None:
+                warnings.warn('You specified the epoch progress but the strategy is `step`. The epoch progress will be ignored.')
 
         if self.cur_step == self.cur_cycle_period:
+            self.first_cycle_completed = True
             if self.strategy == 'epoch':
                 self.cycle_reducer += self.cur_cycle_period
             self.cur_step = 0
