@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "torch-cosine-annealing"
-version = "1.0.0"
+version = "0.1.2"
 description = "Cosine annealing learning rate scheduler for PyTorch based on SGDR"
 readme = "readme.md"
 authors = [{ name = "Steve Immanuel", email = "iam.steve.immanuel@gmail.com" }]
@@ -32,11 +32,11 @@ pythonpath = [
 ]
 
 [tool.bumpver]
-current_version = "1.0.0"
+current_version = "0.1.2"
 version_pattern = "MAJOR.MINOR.PATCH"
 commit_message  = "Bump version {old_version} -> {new_version}"
 commit          = false
-tag             = true
+tag             = false
 push            = false
 
 [tool.bumpver.file_patterns]
