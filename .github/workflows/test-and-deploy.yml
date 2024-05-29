@@ -1,4 +1,4 @@
-name: Deploy to PyPI
+name: Test, Build, and Deploy to PyPI
 
 on:
   # push:
@@ -13,9 +13,8 @@ on:
       - "*"
 
 jobs:
-  install-dependencies:
+  test-build-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
@@ -23,29 +22,21 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-  unit-test:
-      runs-on: ubuntu-latest
-      needs: install-dependencies
-      steps:
-        - name: Install dev dependencies
-          run: pip install pytest
+      - name: Install dev dependencies
+        run: pip install pytest
 
-        - name: Run tests
-          run: pytest tests
-  
-  deploy-to-pypi:
-      runs-on: ubuntu-latest
-      needs: unit-test
-      steps:
-        - name: Install build and deploy dependencies      
-          run: pip install --upgrade build twine
-        
-        - name: Build package
-          run: python -m build
-        
-        - name: Upload package to PyPI
-          env:
-            TWINE_USERNAME: __token__
-            TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-          run: python -m twine upload --repository testpypi dist/*
-        
+      - name: Run tests
+        run: pytest tests
+
+      - name: Install build and deploy dependencies      
+        run: pip install --upgrade build twine
+      
+      - name: Build package
+        run: python -m build
+      
+      - name: Upload package to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload --repository testpypi dist/*
+      
