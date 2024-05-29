@@ -1,10 +1,10 @@
 name: Deploy to PyPI
 
 on:
-  workflow_run:
-    workflows: ["Unit Test"]
-    types:
-      - completed
+  # push:
+  #   tags:
+  #     - "*"
+  # workflow_dispatch:
   push:
     branches:
       - main
@@ -13,7 +13,7 @@ on:
       - "*"
 
 jobs:
-  deploy-to-pypi:
+  install-dependencies:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,15 +23,29 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Install build and deploy dependencies      
-        run: pip install --upgrade build twine
-      
-      - name: Build package
-        run: python -m build
-      
-      - name: Upload package to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: python -m twine upload --repository testpypi dist/*
-      
+  unit-test:
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Install dev dependencies
+          run: pip install pytest
+
+        - name: Run tests
+          run: pytest tests
+  
+  deploy-to-pypi:
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Install build and deploy dependencies      
+          run: pip install --upgrade build twine
+        
+        - name: Build package
+          run: python -m build
+        
+        - name: Upload package to PyPI
+          env:
+            TWINE_USERNAME: __token__
+            TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          run: python -m twine upload --repository testpypi dist/*
+        
