@@ -34,7 +34,7 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
                                                           If a float is given, all lr in the optimizer param groups will be overriden with this value. 
                                                           If a list is given, the length of the list must be the same as the number of param groups in the optimizer.
                                                           Defaults to None.
-            min_lr (float, optional): The maximum learning rate for the optimizer (eta_min). Defaults to 1e-8.
+            min_lr (float, optional): The minimum learning rate for the optimizer (eta_min). Defaults to 1e-8.
             gamma (float, optional): The decay rate for the learning rate after each cycle. Defaults to 1.
             strategy (str, optional): Defines whether the cycle period and warmup period to be treated as steps or epochs. Can be `step` or `epoch`. 
                                       Note that if you use `epoch`, you need to specify the epoch progress each time you call `.step()` Defaults to 'step'.
