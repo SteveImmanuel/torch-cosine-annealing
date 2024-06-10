@@ -202,7 +202,7 @@ def test_load_state_dict_epoch(optimizer: MockOptimizer):
     state_dict = scheduler.state_dict()
     with pytest.warns(Warning) as w:
         scheduler.load_state_dict(state_dict)
-    assert w[0].message.args[0] == 'Restoring scheduler state with epoch strategy may lead to unexpected behavior.'
+    assert w[0].message.args[0] == 'Restoring scheduler state with `epoch` strategy may lead to unexpected behavior.'
 
 def test_get_lr_outside_step(optimizer: MockOptimizer):
     scheduler = CosineAnnealingWithWarmRestarts(

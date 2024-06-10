@@ -8,8 +8,8 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
     def __init__(
         self, 
         optimizer: Optimizer,
-        cycle_period: int,
-        cycle_mult: int = 1,
+        cycle_period: Union[float, int],
+        cycle_mult: float = 1,
         warmup_period: Union[float, int] = 0,
         warmup_once: bool = False,
         max_lr: Optional[Union[float, List[float]]] = None, 
@@ -21,9 +21,9 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
 
         Args:
             optimizer (Optimizer): PyTorch optimizer
-            cycle_period (int): The period for the first cycle. If strategy is 'step', this is the number of steps in the first cycle. 
+            cycle_period (Union[float, int]): The period for the first cycle. If strategy is 'step', this is the number of steps in the first cycle. 
                                 If strategy is 'epoch', this is the number of epochs in the first cycle.
-            cycle_mult (int): The multiplier for the cycle period after each cycle. Defaults to 1.
+            cycle_mult (float): The multiplier for the cycle period after each cycle. Defaults to 1.
             warmup_period (Union[float, int]): The period for warmup for each cycle. 
                                                If strategy is 'step', this is the number of steps for the warmup. 
                                                If strategy is 'epoch', this is the number of epochs for the warmup. 
@@ -77,13 +77,12 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
 
     def load_state_dict(self, state_dict):
         if self.strategy == 'epoch':
-            warnings.warn('Restoring scheduler state with epoch strategy may lead to unexpected behavior.')
+            warnings.warn('Restoring scheduler state with `epoch` strategy may lead to unexpected behavior.')
         super().load_state_dict(state_dict)
 
     def get_lr(self):
         if not self._get_lr_called_within_step:
             warnings.warn('To get the last learning rate computed by the scheduler, please use `get_last_lr()`.')
-        
         if self.cur_step < self.warmup_period and not (self.warmup_once and self.first_cycle_completed):
             lrs = [self.min_lr + (max_lr - self.min_lr) * self.cur_step / self.warmup_period for max_lr in self.base_lrs]
         else:
@@ -108,8 +107,7 @@ class CosineAnnealingWithWarmRestarts(_LRScheduler):
         else:
             if epoch is not None:
                 warnings.warn('You specified the epoch progress but the strategy is `step`. The epoch progress will be ignored.')
-
-        if self.cur_step == self.cur_cycle_period:
+        if self.cur_step >= self.cur_cycle_period:
             self.first_cycle_completed = True
             if self.strategy == 'epoch':
                 self.cycle_reducer += self.cur_cycle_period
