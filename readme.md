@@ -1,5 +1,6 @@
 # Torch Cosine Annealing
 ![PyPI version](https://img.shields.io/pypi/v/torch-cosine-annealing)
+[![Downloads](https://static.pepy.tech/badge/torch-cosine-annealing)](https://pepy.tech/project/torch-cosine-annealing)
 ![Build Status](https://img.shields.io/github/actions/workflow/status/SteveImmanuel/torch-cosine-annealing/test-and-deploy.yml)
 
 Implementation of cosine annealing scheduler introduced in [SGDR](https://arxiv.org/abs/1608.03983) paper. Compared to the [original](https://pytorch.org/docs/stable/generated/torch.optim.lr_scheduler.CosineAnnealingWarmRestarts.html) implementation, it has the following additional features:
